@@ -232,7 +232,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Register only scrapers enabled by flag.
+	// ***Register only scrapers enabled by flag.
 	enabledScrapers := []collector.Scraper{}
 	for scraper, enabled := range scraperFlags {
 		if *enabled {
@@ -261,6 +261,7 @@ func main() {
 		}
 		http.Handle("/", landingPage)
 	}
+	/// HandleFunc 底层是Handle
 	http.HandleFunc("/probe", handleProbe(enabledScrapers, logger))
 	http.HandleFunc("/-/reload", func(w http.ResponseWriter, r *http.Request) {
 		if err = c.ReloadConfig(*configMycnf, *mysqldAddress, *mysqldUser, *tlsInsecureSkipVerify, logger); err != nil {
