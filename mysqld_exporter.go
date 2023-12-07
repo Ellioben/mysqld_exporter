@@ -66,6 +66,7 @@ var (
 	}
 )
 
+// defind the metrics and metrics impletement
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeGlobalStatus{}:                        true,
@@ -105,6 +106,7 @@ var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeReplicaHost{}:                         false,
 }
 
+// filter metrics
 func filterScrapers(scrapers []collector.Scraper, collectParams []string) []collector.Scraper {
 	var filteredScrapers []collector.Scraper
 
@@ -141,11 +143,13 @@ func newHandler(scrapers []collector.Scraper, logger log.Logger) http.HandlerFun
 			target = q.Get("target")
 		}
 
+		// mysql config
 		cfg := c.GetConfig()
 		cfgsection, ok := cfg.Sections["client"]
 		if !ok {
 			level.Error(logger).Log("msg", "Failed to parse section [client] from config file", "err", err)
 		}
+		// get dsn config from mysql configration
 		if dsn, err = cfgsection.FormDSN(target); err != nil {
 			level.Error(logger).Log("msg", "Failed to form dsn from section [client]", "err", err)
 		}
@@ -175,18 +179,20 @@ func newHandler(scrapers []collector.Scraper, logger log.Logger) http.HandlerFun
 				r = r.WithContext(ctx)
 			}
 		}
-
+		// 在newHandler函数中的filterScrapers调用是为了根据HTTP请求中的参数再次过滤scrapers。
+		// 这样可以根据用户的请求动态地过滤scrapers，以便只收集用户感兴趣的指标数据。
 		filteredScrapers := filterScrapers(scrapers, collect)
 
 		registry := prometheus.NewRegistry()
-
+		// Complete the registry by mysql config & filterscrapers
 		registry.MustRegister(collector.New(ctx, dsn, filteredScrapers, logger))
-
+		// gatherers 翻译 收集器采集器
 		gatherers := prometheus.Gatherers{
 			prometheus.DefaultGatherer,
 			registry,
 		}
 		// Delegate http serving to Prometheus client library, which will call collector.Collect.
+		// gatherers metrics
 		h := promhttp.HandlerFor(gatherers, promhttp.HandlerOpts{})
 		h.ServeHTTP(w, r)
 	}
